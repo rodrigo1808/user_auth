@@ -1,6 +1,8 @@
 const User = require('../models/User');
+
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const { validationResult } = require('express-validator');
 
 const saltRounds = 10;
 
@@ -9,8 +11,13 @@ module.exports = {
     async register(req, res) {
         const { name, email, password } = req.body;
 
-        if(!name || !email || !password) {
-            return res.sendStatus(403);
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(422).json({ errors: errors.array() });
+        }
+
+        if(!name) {
+            return res.sendStatus(422);
         }
 
         let user = await User.findOne({ email })
@@ -36,6 +43,11 @@ module.exports = {
 
     async login(req, res) {
         const { email, password } = req.body;
+
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(422).json({ errors: errors.array() });
+        }
 
         let user = await User.findOne({ email });
 
