@@ -1,6 +1,8 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
-const ObjectId = require('mongodb').ObjectId;
+const bcrypt = require('bcrypt');
+
+const saltRounds = 10;
 
 module.exports = {
 
@@ -14,16 +16,18 @@ module.exports = {
         let user = await User.findOne({ email })
 
         if(!user) {
-        
-            user = await User.create({
-                name,
-                email,
-                password
-            })
 
-            const token = jwt.sign({user}, 'secretKey')
-
-            return res.json({ message: 'Usuário criado com sucesso.' , id: user['_id'] , token});
+             bcrypt.hash(password, saltRounds, async function(err, hash) {
+                user = await User.create({
+                    name,
+                    email,
+                    password: hash
+                })
+    
+                const token = jwt.sign({user}, 'secretKey')
+    
+                return res.json({ message: 'Usuário criado com sucesso.' , id: user['_id'] , token});
+            });
 
         } else {
             return res.sendStatus(422);
@@ -37,11 +41,11 @@ module.exports = {
 
         if(user) {
 
-            if(password !== user.password) {
-                return res.sendStatus(403);
-            } else {
+            if(await bcrypt.compare(password, user.password)) {
                 const token = jwt.sign({user}, 'secretKey');
                 return res.json({ message: 'Login feito com sucesso.', id: user['_id'], token});
+            } else {
+                return res.sendStatus(403);
             }
 
         } else {
